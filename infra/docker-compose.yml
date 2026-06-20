@@ -1,0 +1,93 @@
+name: matchmatrix
+
+services:
+  frontend:
+    image: node:22-alpine
+    working_dir: /app
+    command: ["sh", "-c", "echo 'frontend scaffold pending' && sleep infinity"]
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:${BACKEND_INTERNAL_PORT:-8100}
+    ports:
+      - "127.0.0.1:${FRONTEND_INTERNAL_PORT:-3100}:3000"
+    volumes:
+      - ../apps/frontend:/app
+    depends_on:
+      - backend
+
+  backend:
+    image: python:3.12-slim
+    working_dir: /app
+    command: ["sh", "-c", "echo 'backend scaffold pending' && sleep infinity"]
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://matchmatrix:change-me-local-only@postgres:5432/matchmatrix}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      SESSION_SECRET: ${SESSION_SECRET:-change-me}
+      TOTP_ISSUER: ${TOTP_ISSUER:-MatchMatrix}
+    ports:
+      - "127.0.0.1:${BACKEND_INTERNAL_PORT:-8100}:8000"
+    volumes:
+      - ../apps/backend:/app
+    depends_on:
+      - postgres
+      - redis
+
+  grok-worker:
+    image: python:3.12-slim
+    working_dir: /app
+    command: ["sh", "-c", "echo 'grok worker scaffold pending' && sleep infinity"]
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://matchmatrix:change-me-local-only@postgres:5432/matchmatrix}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      GROK_CLI_COMMAND: ${GROK_CLI_COMMAND:-grok}
+      GROK_OAUTH_MODE: ${GROK_OAUTH_MODE:-owner-session}
+    volumes:
+      - ../apps/grok-worker:/app
+    depends_on:
+      - backend
+      - redis
+
+  scheduler:
+    image: python:3.12-slim
+    working_dir: /app
+    command: ["sh", "-c", "echo 'scheduler scaffold pending' && sleep infinity"]
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://matchmatrix:change-me-local-only@postgres:5432/matchmatrix}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    volumes:
+      - ../apps/scheduler:/app
+    depends_on:
+      - backend
+      - redis
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-matchmatrix}
+      POSTGRES_USER: ${POSTGRES_USER:-matchmatrix}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local-only}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-matchmatrix} -d ${POSTGRES_DB:-matchmatrix}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
+  redis-data:
