@@ -13,12 +13,11 @@ MatchMatrix_FINAL_PRD.md
 1. Открой MatchMatrix_FINAL_PRD.md.
 2. Прочитай его полностью.
 3. Используй его как главный источник требований.
-4. Реализуй проект production-уровня на стеке:
+4. Реализуй проект production-уровня для полностью локального запуска на моём ПК на стеке:
    - Next.js + TypeScript
    - FastAPI + Python
    - PostgreSQL
    - Redis
-   - Nginx
    - Docker Compose
    - Grok CLI как AI-worker
 5. Начни с архитектурного каркаса:
@@ -37,7 +36,7 @@ MatchMatrix_FINAL_PRD.md
 10. Реализуй журнал обучения.
 11. Реализуй рекомендации Grok CLI.
 12. Запрещено автоматически менять веса моделей без подтверждения пользователя.
-13. Все рискованные действия, deploy, изменение production config, удаление данных, перезапуск сервисов и git push выполняй только после явного подтверждения.
+13. Все рискованные действия, изменение runtime config, удаление данных, сброс volumes, перезапуск сервисов и git push выполняй только после явного подтверждения.
 14. Если видишь слабый раздел PRD, сначала расширь MatchMatrix_FINAL_PRD.md, затем реализуй код.
 15. В конце каждой итерации пиши:
    - что сделано;
@@ -45,4 +44,6 @@ MatchMatrix_FINAL_PRD.md
    - какие команды проверить;
    - что следующий безопасный шаг.
 
-Начни с проверки структуры проекта и создания production-ready Docker Compose skeleton.
+Целевой запуск: frontend на `http://localhost:3100`, backend API на `http://localhost:8100`, PostgreSQL и Redis в локальных Docker volumes. VPS deploy не нужен.
+
+Начни с проверки структуры проекта и создания production-ready local Docker Compose skeleton.

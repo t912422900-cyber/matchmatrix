@@ -8,14 +8,16 @@ Read `MatchMatrix_FINAL_PRD.md` before implementation. Do not split the product 
 
 ## First Delivery Target
 
-Deploy to `https://matrix.tx-bot.com` behind the existing VPS Nginx reverse proxy.
+Run the full product locally from this PC with Docker Compose:
+
+- Frontend: `http://localhost:3100`
+- Backend API: `http://localhost:8100`
 
 ## Safety Rules
 
-- Do not bind container ports `80` or `443`.
 - Do not commit secrets.
 - Do not apply Grok recommendations without owner confirmation.
-- Do not deploy to VPS without preflight checks.
+- Do not deploy to VPS; this project is local-only unless the owner changes that decision later.
 - Keep public registration and payments disabled until explicitly enabled by the owner.
 
 ## Planned Stack
@@ -25,7 +27,7 @@ Deploy to `https://matrix.tx-bot.com` behind the existing VPS Nginx reverse prox
 - Database: PostgreSQL
 - Cache/Queue: Redis
 - AI worker: Grok CLI
-- Deployment: Docker Compose behind existing Nginx
+- Runtime: local Docker Compose on this PC
 
 ## Current Project Files
 
@@ -33,7 +35,6 @@ Deploy to `https://matrix.tx-bot.com` behind the existing VPS Nginx reverse prox
 - `MatchMatrix_CODEX_MASTER_PROMPT.md` - Codex/Hermes implementation prompt.
 - `docs/superpowers/plans/2026-06-20-matchmatrix-production-delivery.md` - phased technical implementation plan.
 - `infra/docker-compose.yml` - safe local Compose skeleton.
-- `infra/nginx/matchmatrix.conf.example` - example reverse-proxy config only.
 
 ## Local Verification
 
@@ -41,4 +42,4 @@ Deploy to `https://matrix.tx-bot.com` behind the existing VPS Nginx reverse prox
 docker compose -f .\infra\docker-compose.yml config
 ```
 
-The Compose config must parse without binding public `80/443` ports.
+The Compose config must parse and expose only localhost development ports.

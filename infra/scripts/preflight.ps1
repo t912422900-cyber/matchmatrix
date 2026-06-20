@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-Write-Host "== MatchMatrix local/VPS preflight =="
+Write-Host "== MatchMatrix local preflight =="
 Write-Host ""
 
 Write-Host "== Docker containers =="
@@ -16,4 +16,4 @@ Write-Host "== TCP listeners =="
 netstat -ano -p tcp
 Write-Host ""
 
-Write-Host "Preflight is read-only. Review output before any VPS deploy or Nginx change."
+Write-Host "Preflight is read-only. Review output before starting local services."

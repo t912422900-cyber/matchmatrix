@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build MatchMatrix as a full production system for private football and hockey gematria analysis, deployed safely on the owner's VPS at `matrix.tx-bot.com`.
+**Goal:** Build MatchMatrix as a full local production-grade system for private football and hockey gematria analysis, running entirely from the owner's PC.
 
-**Architecture:** MatchMatrix uses a Next.js admin frontend, FastAPI backend, PostgreSQL, Redis, Grok CLI worker, scheduler, and Docker Compose. The app runs behind the existing VPS Nginx reverse proxy and must not bind public `80/443` ports from containers.
+**Architecture:** MatchMatrix uses a Next.js admin frontend, FastAPI backend, PostgreSQL, Redis, Grok CLI worker, scheduler, and Docker Compose. The app runs locally on this PC through localhost ports and does not require VPS, public DNS, external Nginx, or production TLS.
 
-**Tech Stack:** Next.js, TypeScript, FastAPI, Python 3.12+, PostgreSQL 16+, Redis, Docker Compose, existing VPS Nginx, Grok CLI via owner OAuth/Grok Super.
+**Tech Stack:** Next.js, TypeScript, FastAPI, Python 3.12+, PostgreSQL 16+, Redis, Docker Compose, Grok CLI via owner OAuth/Grok Super.
 
 ---
 
@@ -41,8 +41,6 @@ app_matrix/
     shared-types/
   infra/
     docker-compose.yml
-    nginx/
-      matchmatrix.conf.example
     scripts/
       preflight.ps1
       backup.ps1
@@ -65,7 +63,6 @@ app_matrix/
 - Create: `.env.example`
 - Create: `README.md`
 - Create: `infra/docker-compose.yml`
-- Create: `infra/nginx/matchmatrix.conf.example`
 - Create: `infra/scripts/preflight.ps1`
 
 - [ ] **Step 1: Verify local project instructions exist**
@@ -119,7 +116,7 @@ Create `.env.example` with:
 
 ```dotenv
 APP_ENV=local
-APP_DOMAIN=matrix.tx-bot.com
+APP_DOMAIN=localhost
 FRONTEND_INTERNAL_PORT=3100
 BACKEND_INTERNAL_PORT=8100
 POSTGRES_DB=matchmatrix
@@ -149,14 +146,16 @@ Read `MatchMatrix_FINAL_PRD.md` before implementation.
 
 ## First Delivery Target
 
-Deploy to `https://matrix.tx-bot.com` behind the existing VPS Nginx reverse proxy.
+Run locally from this PC:
+
+- Frontend: `http://localhost:3100`
+- Backend API: `http://localhost:8100`
 
 ## Safety Rules
 
-- Do not bind container ports 80 or 443.
 - Do not commit secrets.
 - Do not apply Grok recommendations without owner confirmation.
-- Do not deploy to VPS without preflight checks.
+- Do not deploy to VPS unless the owner explicitly changes the local-only decision later.
 
 ## Planned Stack
 
@@ -165,18 +164,14 @@ Deploy to `https://matrix.tx-bot.com` behind the existing VPS Nginx reverse prox
 - Database: PostgreSQL
 - Cache/Queue: Redis
 - AI worker: Grok CLI
-- Deployment: Docker Compose behind existing Nginx
+- Runtime: local Docker Compose on this PC
 ```
 
 - [ ] **Step 6: Create Docker Compose skeleton**
 
 Create `infra/docker-compose.yml` with services for `frontend`, `backend`, `postgres`, `redis`, `grok-worker`, and `scheduler`. Containers must expose only internal ports and bind frontend/backend to localhost in local/dev mode.
 
-- [ ] **Step 7: Create Nginx example without applying it**
-
-Create `infra/nginx/matchmatrix.conf.example` for `matrix.tx-bot.com` with proxy targets to internal app ports. This is an example only; real VPS config changes require backup and `nginx -t`.
-
-- [ ] **Step 8: Create deploy preflight script**
+- [ ] **Step 7: Create local preflight script**
 
 Create `infra/scripts/preflight.ps1` to print:
 
@@ -186,9 +181,9 @@ docker compose -f .\infra\docker-compose.yml config
 netstat -ano -p tcp
 ```
 
-Expected: script reports current state but does not change server configuration.
+Expected: script reports current local state but does not change machine configuration.
 
-- [ ] **Step 9: Verify Phase 0**
+- [ ] **Step 8: Verify Phase 0**
 
 Run:
 
@@ -416,24 +411,24 @@ Expected: statistics, retro-test, and version history tests pass.
 
 ---
 
-### Task 8: Phase 7 Backup, Hardening, And Safe VPS Deploy
+### Task 8: Phase 7 Local Backup, Hardening, And Runbook
 
 **Files:**
 - Create: `infra/scripts/backup.ps1`
-- Create: `docs/deployment/vps-preflight.md`
-- Create: `docs/deployment/vps-deploy.md`
+- Create: `docs/deployment/local-preflight.md`
+- Create: `docs/deployment/local-runbook.md`
 
 - [ ] **Step 1: Implement manual backup**
 
 Backup script dumps PostgreSQL and archives uploaded/configured runtime data without including secrets in repo.
 
-- [ ] **Step 2: Write VPS preflight checklist**
+- [ ] **Step 2: Write local preflight checklist**
 
-Document checks for containers, ports, existing Nginx configs, SSL, volumes, firewall, and Hermes/site coexistence.
+Document checks for Docker availability, localhost ports, volumes, env files, Grok CLI availability, and backup destination.
 
-- [ ] **Step 3: Write deploy procedure**
+- [ ] **Step 3: Write local run procedure**
 
-Deployment must use existing VPS Nginx as reverse proxy and keep MatchMatrix containers off public `80/443`.
+The runbook must start, stop, backup, restore, and verify MatchMatrix locally without touching VPS infrastructure.
 
 - [ ] **Step 4: Verify Phase 7 locally**
 
@@ -445,13 +440,7 @@ docker compose -f .\infra\docker-compose.yml config
 
 Expected: Compose config is valid.
 
-Run:
-
-```powershell
-Select-String -Path .\infra\docker-compose.yml -Pattern '80:|443:'
-```
-
-Expected: no public `80:` or `443:` bindings.
+Expected: Compose config is valid and only localhost app ports are exposed.
 
 ---
 
@@ -501,8 +490,8 @@ Expected: no real secrets. `.env.example` placeholder values are acceptable.
 
 Production readiness requires:
 
-- the owner can complete the full match workflow from `https://matrix.tx-bot.com`;
-- existing VPS websites and Hermes remain operational;
+- the owner can complete the full match workflow from `http://localhost:3100`;
+- no VPS, public DNS, or external Nginx is required;
 - Grok recommendations never apply without confirmation;
 - manual backup works;
 - all tests and preflight checks pass.
