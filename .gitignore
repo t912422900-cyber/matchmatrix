@@ -16,6 +16,7 @@ postgres-data/
 redis-data/
 backups/
 coverage/
+*.egg-info/
 mcps/
 .agents/
 MatchMatrix_FINAL_PRD(2).md
