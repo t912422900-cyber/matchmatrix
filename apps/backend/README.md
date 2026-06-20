@@ -20,3 +20,15 @@ $env:SESSION_SECRET='change-me'
 alembic upgrade head --sql
 Pop-Location
 ```
+
+## Owner Bootstrap
+
+The first private admin account is bootstrapped from environment variables:
+
+```dotenv
+OWNER_EMAIL=owner@example.com
+OWNER_PASSWORD_HASH=generated-pbkdf2-hash
+OWNER_TOTP_SECRET=generated-base32-secret
+```
+
+The service stores the owner, confirmed TOTP secret, and login sessions in PostgreSQL. Use placeholder values only in `.env.example`.
