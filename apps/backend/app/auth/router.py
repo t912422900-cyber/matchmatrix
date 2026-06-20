@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-import base64
-import hashlib
-import hmac
+from collections.abc import Generator
 
-from fastapi import APIRouter, Cookie, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
+from sqlalchemy.orm import Session as DbSession
 
-from app.auth.security import verify_password
-from app.auth.totp import verify_totp_code
+from app.auth.service import AuthService
 from app.core.config import Settings
 
 SESSION_COOKIE_NAME = "matchmatrix_session"
@@ -22,14 +20,37 @@ class LoginRequest(BaseModel):
     totp_code: str
 
 
+def get_db(request: Request) -> Generator[DbSession, None, None]:
+    session_factory = request.app.state.session_factory
+    with session_factory() as db:
+        yield db
+
+
+def get_auth_service(request: Request, db: DbSession = Depends(get_db)) -> AuthService:
+    settings: Settings = request.app.state.settings
+    return AuthService(db, settings)
+
+
 @router.post("/login", status_code=status.HTTP_204_NO_CONTENT)
-def login(payload: LoginRequest, response: Response) -> None:
-    settings = Settings.from_env()
-    _verify_owner_login(settings, payload)
-    token = _sign_session(settings.owner_email or payload.email, settings.session_secret)
+def login(
+    payload: LoginRequest,
+    response: Response,
+    request: Request,
+    auth_service: AuthService = Depends(get_auth_service),
+) -> None:
+    session_token = auth_service.authenticate_owner(
+        email=payload.email,
+        password=payload.password,
+        totp_code=payload.totp_code,
+        user_agent=request.headers.get("user-agent"),
+        ip_address=request.client.host if request.client else None,
+    )
+    if session_token is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
-        value=token,
+        value=session_token,
         httponly=True,
         secure=False,
         samesite="lax",
@@ -39,54 +60,15 @@ def login(payload: LoginRequest, response: Response) -> None:
 
 
 @router.get("/me")
-def me(matchmatrix_session: str | None = Cookie(default=None)) -> dict[str, str]:
-    settings = Settings.from_env()
+def me(
+    matchmatrix_session: str | None = Cookie(default=None),
+    auth_service: AuthService = Depends(get_auth_service),
+) -> dict[str, str]:
     if matchmatrix_session is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
 
-    email = _verify_session(matchmatrix_session, settings.session_secret)
-    if email is None or email != settings.owner_email:
+    user = auth_service.get_user_for_session(matchmatrix_session)
+    if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
 
-    return {"email": email, "role": "owner"}
-
-
-def _verify_owner_login(settings: Settings, payload: LoginRequest) -> None:
-    if not settings.owner_email or not settings.owner_password_hash or not settings.owner_totp_secret:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Owner bootstrap is not configured")
-
-    credentials_ok = (
-        payload.email == settings.owner_email
-        and verify_password(payload.password, settings.owner_password_hash)
-        and verify_totp_code(settings.owner_totp_secret, payload.totp_code)
-    )
-    if not credentials_ok:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-
-
-def _sign_session(email: str, secret: str) -> str:
-    email_raw = email.encode("utf-8")
-    signature = hmac.new(secret.encode("utf-8"), email_raw, hashlib.sha256).digest()
-    return "{email}.{signature}".format(
-        email=base64.urlsafe_b64encode(email_raw).decode("ascii").rstrip("="),
-        signature=base64.urlsafe_b64encode(signature).decode("ascii").rstrip("="),
-    )
-
-
-def _verify_session(token: str, secret: str) -> str | None:
-    try:
-        email_raw, signature_raw = token.split(".", 1)
-        email_bytes = _urlsafe_b64decode(email_raw)
-        signature = _urlsafe_b64decode(signature_raw)
-    except (ValueError, TypeError):
-        return None
-
-    expected = hmac.new(secret.encode("utf-8"), email_bytes, hashlib.sha256).digest()
-    if not hmac.compare_digest(signature, expected):
-        return None
-    return email_bytes.decode("utf-8")
-
-
-def _urlsafe_b64decode(value: str) -> bytes:
-    padding = "=" * ((4 - len(value) % 4) % 4)
-    return base64.urlsafe_b64decode((value + padding).encode("ascii"))
+    return {"email": user.email, "role": user.role}

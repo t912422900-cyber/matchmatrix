@@ -31,4 +31,4 @@ OWNER_PASSWORD_HASH=generated-pbkdf2-hash
 OWNER_TOTP_SECRET=generated-base32-secret
 ```
 
-The service stores the owner, confirmed TOTP secret, and login sessions in PostgreSQL. Use placeholder values only in `.env.example`.
+The service stores the owner, confirmed TOTP secret, and login sessions in PostgreSQL. `/api/auth/login` creates a persisted session token, and `/api/auth/me` resolves the owner from that persisted session. Use placeholder values only in `.env.example`.
